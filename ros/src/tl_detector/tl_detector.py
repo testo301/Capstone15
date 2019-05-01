@@ -136,7 +136,7 @@ class TLDetector(object):
 
         # Processing every second image
 
-        if (self.counter_processing % 2 == 0):
+        if (self.counter_processing % 1 == 0):
             light_wp, state = self.process_traffic_lights()
             self.light_wp_temp = light_wp
         
