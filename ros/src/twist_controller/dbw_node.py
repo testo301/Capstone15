@@ -62,6 +62,7 @@ class DBWNode(object):
         rospy.Subscriber('/vehicle/dbw_enabled',Bool,self.dbw_enabled_cb)
         # Initializing manual control flag
         self.dbw_enabled = None
+        #self.dbw_enabled = True
         # Initializing vehicle control parameters
         self.throttle = 0
         self.steering = 0

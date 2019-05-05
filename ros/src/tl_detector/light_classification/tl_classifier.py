@@ -22,6 +22,7 @@ class TLClassifier(object):
         self.light = TrafficLight.UNKNOWN
         ssd_inception_v2 = './light_classification/model/frozen_inference_graph.pb'
         NUM_CLASSES = 4
+        self.load_status_tl = False
 
         self.detection_graph = tf.Graph()
 
@@ -50,6 +51,7 @@ class TLClassifier(object):
         self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
         
         print("Entire model loaded")
+        self.load_status_tl = True
 
     def load_image_into_numpy_array(self,image):
         (im_width, im_height) = image.size

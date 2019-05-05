@@ -19,7 +19,6 @@ Please note that our simulator also provides the exact location of traffic light
 current status in `/vehicle/traffic_lights` message. You can use this message to build this node
 as well as to verify your TL classifier.
 
-TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 # Implementation skeleton is based on Udacity 6. Waypoint Updater Partial Walkthrough
@@ -48,10 +47,13 @@ class WaypointUpdater(object):
         self.base_waypoints = None
         self.waypoints_2d = None
 
-        rate=rospy.Rate(30)
+        self.stop_temp = False
+
+        rate=rospy.Rate(20)
         # The rate is decreased to enhance the performance of the simulator
         # while not rospy.core.is_shutdown():
         while not rospy.is_shutdown():  
+            #rospy.logerr(">> Active - stopline  :%s",self.stop_temp)
             if self.pose and self.base_lane and self.waypoints_2d:
                 self.publish_waypoints()
             #rospy.rostime.wallsleep(1)
@@ -84,9 +86,15 @@ class WaypointUpdater(object):
         lane=Lane()
         # Capturing the closest waypoint
         closest_idx=self.get_closest_waypoint_id()
+        #rospy.logerr(">> Closest idx :%s",closest_idx)
+
         farthest_idx=closest_idx+LOOKAHEAD_WPS
         base_waypoints=self.base_lane.waypoints[closest_idx:farthest_idx]
-        if self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx) or self.stopline_wp_idx < (closest_idx+1):
+
+
+        if self.stop_temp == False:
+            lane.waypoints=self.initial_stop(base_waypoints,closest_idx)
+        elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx) or self.stopline_wp_idx < (closest_idx+1)):
             #lane.waypoints=base_waypoints
             lane.waypoints = self.extrapolate_acceleration(closest_idx, farthest_idx)
         else:
@@ -103,6 +111,17 @@ class WaypointUpdater(object):
             if vel<1.:
                 vel=0.
             p.twist.twist.linear.x=min(vel,wp.twist.twist.linear.x)
+            temp.append(p)
+        return temp
+    def initial_stop(self,waypoints,closest_idx):
+        temp=[]
+        for i,wp in enumerate(waypoints):
+            p=Waypoint()
+            p.pose=wp.pose
+            stop_idx=max(self.stopline_wp_idx-closest_idx-4,0) # 4 is a distance buffer to make the car stop behind the line
+            dist = self.distance(waypoints,i,stop_idx)
+            vel=math.sqrt(2*MAX_DECEL*dist)
+            p.twist.twist.linear.x=0.0
             temp.append(p)
         return temp
     def extrapolate_acceleration(self,idx1,idx2):
@@ -132,6 +151,11 @@ class WaypointUpdater(object):
         # TODO: Callback for /traffic_waypoint message. Implement
         # Done
         self.stopline_wp_idx = msg.data
+
+        # Auxiliary flag to indicate that the TL Detector instance was fully loaded and publishes
+        self.stop_temp = True
+
+        #rospy.logerr("Stopline idx :%s",self.stopline_wp_idx)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
