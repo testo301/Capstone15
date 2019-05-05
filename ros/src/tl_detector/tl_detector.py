@@ -57,8 +57,17 @@ class TLDetector(object):
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
+        # NEW
+        #if self.load_status == False:
+        #    self.upcoming_red_light_pub.publish(Int32(288))
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
+
+
+        #self.bridge = CvBridge()
+        #self.light_classifier = TLClassifier()
+        #self.listener = tf.TransformListener()
+
 
         self.last_wp = -1
         self.state_count = 0
@@ -99,6 +108,13 @@ class TLDetector(object):
     def loop(self):
         rate=rospy.Rate(30)
         while not rospy.is_shutdown():
+
+            #rospy.logerr("Light 2D :%s",self.intheloop )
+            #rospy.logerr("Light 2D :%s",self.flag_enter)
+
+            #if self.light_wp_temp and self.closest_id_temp  and ( self.light_wp_temp  - self.closest_id_temp < 70):
+            #    rospy.logerr("Close light")
+
             if self.pose and self.pub_light:
                 self.publish_light()
                 #rospy.logerr("Light :%s",self.pub_light)
@@ -139,7 +155,23 @@ class TLDetector(object):
         self.counter_processing += 1
 
         # Processing every second image
-        if (self.counter_processing % 2 == 0):
+        # Nigdy nie wchodzi do tego warunku
+        #if self.load_status == False:
+        #    self.upcoming_red_light_pub.publish(Int32(285))
+            #rospy.logerr(">> Publishing inside False :%s",285)
+
+        # If the model is not entirely loaded, publishing temporary stop point
+
+        if self.load_status == False and self.pose and self.lights_2d and self.waypoints:    
+            temp_idx=self.get_closest_waypoint(self.pose.pose.position.x,self.pose.pose.position.y)
+            #rospy.logerr(">> Temp idx :%s",temp_idx)
+            self.upcoming_red_light_pub.publish(Int32(temp_idx))
+            self.pub_light=Int32(temp_idx)
+
+
+
+        #if (self.counter_processing % 2 == 0 and self.load_status == True):
+        elif (self.counter_processing % 2 == 0):
 
 
             light_wp, state = self.process_traffic_lights()
@@ -166,8 +198,8 @@ class TLDetector(object):
                 self.last_state = self.state
                 # Conservative approach - slowing down on both YELLOW and RED lights
 
-                light_wp = light_wp if state == TrafficLight.YELLOW or state == TrafficLight.RED or self.load_status == False else -1
 
+                light_wp = light_wp if state == TrafficLight.YELLOW or state == TrafficLight.RED or self.load_status == False else -1
 
                 self.last_wp = light_wp
                 self.upcoming_red_light_pub.publish(Int32(light_wp))
@@ -190,6 +222,8 @@ class TLDetector(object):
         """
 
         if self.waypoints_2d:
+
+            #closest_point=self.waypoint_tree.query([x,y],1)[1]
 
             closest_point = self.closest(self.waypoints_2d,[x,y])
 
@@ -262,6 +296,13 @@ class TLDetector(object):
         light_waypoint_id=None
         # Lists of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions=self.config['stop_line_positions']
+
+
+
+        #rospy.logerr(">> Stop line positions :%s",stop_line_positions)
+
+
+
 
         if(self.pose and  self.lights_2d and self.waypoints):    
             # Auxiliary flag for debugging

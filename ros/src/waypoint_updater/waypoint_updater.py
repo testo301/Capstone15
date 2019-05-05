@@ -49,7 +49,7 @@ class WaypointUpdater(object):
 
         self.stop_temp = False
 
-        rate=rospy.Rate(20)
+        rate=rospy.Rate(50)
         # The rate is decreased to enhance the performance of the simulator
         # while not rospy.core.is_shutdown():
         while not rospy.is_shutdown():  
@@ -88,13 +88,16 @@ class WaypointUpdater(object):
         closest_idx=self.get_closest_waypoint_id()
         #rospy.logerr(">> Closest idx :%s",closest_idx)
 
+
         farthest_idx=closest_idx+LOOKAHEAD_WPS
         base_waypoints=self.base_lane.waypoints[closest_idx:farthest_idx]
 
-
         if self.stop_temp == False:
             lane.waypoints=self.initial_stop(base_waypoints,closest_idx)
-        elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx) or self.stopline_wp_idx < (closest_idx+1)):
+
+
+        #elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx) or self.stopline_wp_idx < (closest_idx+1)):
+        elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx)): 
             #lane.waypoints=base_waypoints
             lane.waypoints = self.extrapolate_acceleration(closest_idx, farthest_idx)
         else:
