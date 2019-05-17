@@ -16,9 +16,9 @@ import yaml
 
 # Constants
 # Threshold for counting the states of the traffic lights
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 2
 # The lookahead distance to the next traffic lights that would trigger detection
-TL_DIST = 200
+TL_DIST = 100
 
 class TLDetector(object):
     def __init__(self):
@@ -106,7 +106,7 @@ class TLDetector(object):
 
     # Loop for debugging only
     def loop(self):
-        rate=rospy.Rate(30)
+        rate=rospy.Rate(20)
         while not rospy.is_shutdown():
 
             #rospy.logerr("Light 2D :%s",self.intheloop )
@@ -115,10 +115,10 @@ class TLDetector(object):
             #if self.light_wp_temp and self.closest_id_temp  and ( self.light_wp_temp  - self.closest_id_temp < 70):
             #    rospy.logerr("Close light")
 
-            if self.pose and self.pub_light:
-                self.publish_light()
+            #if self.pose and self.pub_light:
+            #    self.publish_light()
                 #rospy.logerr("Light :%s",self.pub_light)
-                self.flag_image_cb = 1
+            #    self.flag_image_cb = 1
 
             rate.sleep()
 
@@ -171,7 +171,7 @@ class TLDetector(object):
 
 
         #if (self.counter_processing % 2 == 0 and self.load_status == True):
-        elif (self.counter_processing % 2 == 0):
+        elif (self.counter_processing % 3 == 0):
 
 
             light_wp, state = self.process_traffic_lights()

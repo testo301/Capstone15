@@ -98,8 +98,8 @@ class WaypointUpdater(object):
 
         #elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx) or self.stopline_wp_idx < (closest_idx+1)):
         elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx)): 
-            #lane.waypoints=base_waypoints
-            lane.waypoints = self.extrapolate_acceleration(closest_idx, farthest_idx)
+            lane.waypoints=base_waypoints
+            #lane.waypoints = self.extrapolate_acceleration(closest_idx, farthest_idx)
         else:
             lane.waypoints=self.decelerate_waypoints(base_waypoints,closest_idx)
         return lane
