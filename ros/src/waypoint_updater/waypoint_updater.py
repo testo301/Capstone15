@@ -49,7 +49,7 @@ class WaypointUpdater(object):
 
         self.stop_temp = False
 
-        rate=rospy.Rate(20)
+        rate=rospy.Rate(10)
         # The rate is decreased to enhance the performance of the simulator
         # while not rospy.core.is_shutdown():
         while not rospy.is_shutdown():  

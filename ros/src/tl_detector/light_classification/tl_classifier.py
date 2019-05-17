@@ -84,7 +84,7 @@ class TLClassifier(object):
         classes = np.squeeze(classes).astype(np.int32)
     
         # 50% threshold for significance of detection
-        min_score_thresh = 0.5
+        min_score_thresh = 0.3
 
         # List for appending significant classes
         class_list = []

@@ -18,7 +18,7 @@ import yaml
 # Threshold for counting the states of the traffic lights
 STATE_COUNT_THRESHOLD = 2
 # The lookahead distance to the next traffic lights that would trigger detection
-TL_DIST = 100
+TL_DIST = 80
 
 class TLDetector(object):
     def __init__(self):
@@ -171,7 +171,7 @@ class TLDetector(object):
 
 
         #if (self.counter_processing % 2 == 0 and self.load_status == True):
-        elif (self.counter_processing % 3 == 0):
+        elif (self.counter_processing % 4 == 0):
 
 
             light_wp, state = self.process_traffic_lights()
