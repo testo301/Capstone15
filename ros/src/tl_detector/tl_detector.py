@@ -194,10 +194,8 @@ class TLDetector(object):
             used.
             '''
 
-
-            rospy.logerr("State: %s",state)
-
-            #
+            # New
+            #rospy.logerr("State: %s",state)
 
 
             if self.state != state:
@@ -208,7 +206,7 @@ class TLDetector(object):
                 # Conservative approach - slowing down on both YELLOW and RED lights
                 if state == TrafficLight.YELLOW or state == TrafficLight.RED or self.load_status == False:
                 	light_wp = light_wp
-                elif state == TrafficLight.GREEN and ( self.light_waypoint_id_temp  - self.closest_id_temp < 20) and ( self.light_waypoint_id_temp  - self.closest_id_temp >=0):
+                elif state == TrafficLight.GREEN and ( self.light_waypoint_id_temp  - self.closest_id_temp < 20) and ( self.light_waypoint_id_temp  - self.closest_id_temp >=(-5)):
                 	light_wp = -3
                 elif ( self.light_waypoint_id_temp  - self.closest_id_temp < TL_DIST) and ( self.light_waypoint_id_temp  - self.closest_id_temp >3):
                 	light_wp = -2

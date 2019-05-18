@@ -104,7 +104,7 @@ class WaypointUpdater(object):
             lane.waypoints=base_waypoints
             lane.waypoints=self.slowdown(base_waypoints,closest_idx)
         elif base_waypoints and (self.stopline_wp_idx == -3):
-            lane.waypoints=base_waypoints
+            #lane.waypoints=base_waypoints
             lane.waypoints=self.faststart(base_waypoints,closest_idx)
         else:
             lane.waypoints=self.decelerate_waypoints(base_waypoints,closest_idx)
@@ -147,7 +147,9 @@ class WaypointUpdater(object):
             #if vel<1.:
             #    vel=0.
             #p.twist.twist.linear.x=min(vel,wp.twist.twist.linear.x)
+            #rospy.logerr(">>>> Speed :%s",wp.twist.twist.linear.x)
             p.twist.twist.linear.x=2.0*wp.twist.twist.linear.x
+            #p.twist.twist.linear.x=60
             temp.append(p)
         return temp      
     def initial_stop(self,waypoints,closest_idx):
@@ -192,7 +194,11 @@ class WaypointUpdater(object):
         # Auxiliary flag to indicate that the TL Detector instance was fully loaded and publishes
         self.stop_temp = True
 
-        rospy.logerr(">>Stopline idx :%s",self.stopline_wp_idx)
+
+        # New
+        #rospy.logerr(">>Stopline idx :%s",self.stopline_wp_idx)
+
+
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
