@@ -97,9 +97,15 @@ class WaypointUpdater(object):
 
 
         #elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx) or self.stopline_wp_idx < (closest_idx+1)):
-        elif base_waypoints and (self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx)): 
+        elif base_waypoints and (self.stopline_wp_idx == -1  or (self.stopline_wp_idx >= farthest_idx)): 
             lane.waypoints=base_waypoints
             #lane.waypoints = self.extrapolate_acceleration(closest_idx, farthest_idx)
+        elif base_waypoints and (self.stopline_wp_idx == -2):
+            lane.waypoints=base_waypoints
+            lane.waypoints=self.slowdown(base_waypoints,closest_idx)
+        elif base_waypoints and (self.stopline_wp_idx == -3):
+            lane.waypoints=base_waypoints
+            lane.waypoints=self.faststart(base_waypoints,closest_idx)
         else:
             lane.waypoints=self.decelerate_waypoints(base_waypoints,closest_idx)
         return lane
@@ -108,7 +114,7 @@ class WaypointUpdater(object):
         for i,wp in enumerate(waypoints):
             p=Waypoint()
             p.pose=wp.pose
-            stop_idx=max(self.stopline_wp_idx-closest_idx-4,0) # 4 is a distance buffer to make the car stop behind the line
+            stop_idx=max(self.stopline_wp_idx-closest_idx-3,0) # 4 is a distance buffer to make the car stop behind the line
             dist = self.distance(waypoints,i,stop_idx)
             vel=math.sqrt(2*MAX_DECEL*dist)
             if vel<1.:
@@ -116,6 +122,34 @@ class WaypointUpdater(object):
             p.twist.twist.linear.x=min(vel,wp.twist.twist.linear.x)
             temp.append(p)
         return temp
+    def slowdown(self,waypoints,closest_idx):
+        temp=[]
+        for i,wp in enumerate(waypoints):
+            p=Waypoint()
+            p.pose=wp.pose
+            #stop_idx=max(self.stopline_wp_idx-closest_idx-3,0) # 4 is a distance buffer to make the car stop behind the line
+            #dist = self.distance(waypoints,i,stop_idx)
+            #vel=math.sqrt(4*MAX_DECEL*dist)
+            #if vel<1.:
+            #    vel=0.
+            #p.twist.twist.linear.x=min(vel,wp.twist.twist.linear.x)
+            p.twist.twist.linear.x=wp.twist.twist.linear.x/2.0
+            temp.append(p)
+        return temp  
+    def faststart(self,waypoints,closest_idx):
+        temp=[]
+        for i,wp in enumerate(waypoints):
+            p=Waypoint()
+            p.pose=wp.pose
+            #stop_idx=max(self.stopline_wp_idx-closest_idx-3,0) # 4 is a distance buffer to make the car stop behind the line
+            #dist = self.distance(waypoints,i,stop_idx)
+            #vel=math.sqrt(4*MAX_DECEL*dist)
+            #if vel<1.:
+            #    vel=0.
+            #p.twist.twist.linear.x=min(vel,wp.twist.twist.linear.x)
+            p.twist.twist.linear.x=2.0*wp.twist.twist.linear.x
+            temp.append(p)
+        return temp      
     def initial_stop(self,waypoints,closest_idx):
         temp=[]
         for i,wp in enumerate(waypoints):
@@ -158,7 +192,7 @@ class WaypointUpdater(object):
         # Auxiliary flag to indicate that the TL Detector instance was fully loaded and publishes
         self.stop_temp = True
 
-        #rospy.logerr("Stopline idx :%s",self.stopline_wp_idx)
+        rospy.logerr(">>Stopline idx :%s",self.stopline_wp_idx)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later

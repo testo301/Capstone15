@@ -18,7 +18,7 @@ import yaml
 # Threshold for counting the states of the traffic lights
 STATE_COUNT_THRESHOLD = 2
 # The lookahead distance to the next traffic lights that would trigger detection
-TL_DIST = 80
+TL_DIST = 120
 
 class TLDetector(object):
     def __init__(self):
@@ -38,6 +38,7 @@ class TLDetector(object):
         # Counter for processing every 5th image from camera
         self.counter_processing = 1
         self.inside_state = None
+        self.light_waypoint_id_inner = None
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -98,6 +99,7 @@ class TLDetector(object):
         self.listener = tf.TransformListener()
 
         self.load_status = self.light_classifier.load_status_tl
+        #rospy.Rate(10)
 
 
         rospy.spin()
@@ -106,7 +108,7 @@ class TLDetector(object):
 
     # Loop for debugging only
     def loop(self):
-        rate=rospy.Rate(20)
+        rate=rospy.Rate(10)
         while not rospy.is_shutdown():
 
             #rospy.logerr("Light 2D :%s",self.intheloop )
@@ -171,7 +173,7 @@ class TLDetector(object):
 
 
         #if (self.counter_processing % 2 == 0 and self.load_status == True):
-        elif (self.counter_processing % 4 == 0):
+        elif (self.counter_processing % 3 == 0):
 
 
             light_wp, state = self.process_traffic_lights()
@@ -191,15 +193,31 @@ class TLDetector(object):
             of times till we start using it. Otherwise the previous stable state is
             used.
             '''
+
+
+            rospy.logerr("State: %s",state)
+
+            #
+
+
             if self.state != state:
                 self.state_count = 0
                 self.state = state
             elif self.state_count >= STATE_COUNT_THRESHOLD:
                 self.last_state = self.state
                 # Conservative approach - slowing down on both YELLOW and RED lights
+                if state == TrafficLight.YELLOW or state == TrafficLight.RED or self.load_status == False:
+                	light_wp = light_wp
+                elif state == TrafficLight.GREEN and ( self.light_waypoint_id_temp  - self.closest_id_temp < 20) and ( self.light_waypoint_id_temp  - self.closest_id_temp >=0):
+                	light_wp = -3
+                elif ( self.light_waypoint_id_temp  - self.closest_id_temp < TL_DIST) and ( self.light_waypoint_id_temp  - self.closest_id_temp >3):
+                	light_wp = -2
+                else:
+                	light_wp = -1
 
 
-                light_wp = light_wp if state == TrafficLight.YELLOW or state == TrafficLight.RED or self.load_status == False else -1
+
+                #light_wp = light_wp if state == TrafficLight.YELLOW or state == TrafficLight.RED or self.load_status == False else -1
 
                 self.last_wp = light_wp
                 self.upcoming_red_light_pub.publish(Int32(light_wp))
@@ -346,7 +364,9 @@ class TLDetector(object):
             
 
             return light_waypoint_id, state
-        return -1, TrafficLight.UNKNOWN
+        #return -1, TrafficLight.UNKNOWN
+        self.light_waypoint_id_inner = light_waypoint_id
+        return light_waypoint_id, TrafficLight.UNKNOWN
 
 
 
