@@ -200,9 +200,10 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        closest_point = self.waypoint_tree.query([x, y], 1)[1]
+        if self.waypoint_tree:
+        	closest_point = self.waypoint_tree.query([x, y], 1)[1]
 
-        return closest_point
+        	return closest_point
 
     # Closest point implementation
     def closest(self, wpts, wp):
