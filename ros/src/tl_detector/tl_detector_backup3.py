@@ -8,7 +8,6 @@ from styx_msgs.msg import Lane
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
-from scipy.spatial import KDTree
 import os
 import uuid
 import tf
@@ -19,7 +18,7 @@ import yaml
 # Threshold for counting the states of the traffic lights
 STATE_COUNT_THRESHOLD = 2
 # The lookahead distance to the next traffic lights that would trigger detection
-TL_DIST = 100
+TL_DIST = 120
 
 class TLDetector(object):
     def __init__(self):
@@ -29,17 +28,13 @@ class TLDetector(object):
         self.pose = None
         self.load_status = False
 
+
         self.waypoints = None
         self.camera_image = None
         self.lights = []
         self.pub_light=None
-        #self.lights_2d=None
+        self.lights_2d=None
         self.waypoints_2d = None
-
-
-        # CHANGE
-        self.waypoint_tree = None
-
         # Counter for processing every 5th image from camera
         self.counter_processing = 1
         self.inside_state = None
@@ -63,8 +58,17 @@ class TLDetector(object):
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
+        # NEW
+        #if self.load_status == False:
+        #    self.upcoming_red_light_pub.publish(Int32(288))
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
+
+
+        #self.bridge = CvBridge()
+        #self.light_classifier = TLClassifier()
+        #self.listener = tf.TransformListener()
+
 
         self.last_wp = -1
         self.state_count = 0
@@ -80,7 +84,7 @@ class TLDetector(object):
         # Real light state - for testing correctness of the model only
         self.temp_light_state  = None
 
-        #self.lights_2d = None
+        self.lights_2d = None
         self.temp_line = None
 
 
@@ -95,8 +99,30 @@ class TLDetector(object):
         self.listener = tf.TransformListener()
 
         self.load_status = self.light_classifier.load_status_tl
+        #rospy.Rate(10)
+
 
         rospy.spin()
+
+        #self.loop()
+
+    # Loop for debugging only
+    def loop(self):
+        rate=rospy.Rate(10)
+        while not rospy.is_shutdown():
+
+            #rospy.logerr("Light 2D :%s",self.intheloop )
+            #rospy.logerr("Light 2D :%s",self.flag_enter)
+
+            #if self.light_wp_temp and self.closest_id_temp  and ( self.light_wp_temp  - self.closest_id_temp < 70):
+            #    rospy.logerr("Close light")
+
+            #if self.pose and self.pub_light:
+            #    self.publish_light()
+                #rospy.logerr("Light :%s",self.pub_light)
+            #    self.flag_image_cb = 1
+
+            rate.sleep()
 
     # For debugging purposes only
     def publish_light(self):
@@ -111,11 +137,10 @@ class TLDetector(object):
         self.waypoints = waypoints
         if not self.waypoints_2d:
             self.waypoints_2d =  [[waypoint.pose.pose.position.x,waypoint.pose.pose.position.y] for waypoint in waypoints.waypoints]
-            self.waypoint_tree = KDTree(self.waypoints_2d)
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
-        #self.lights_2d  = [[lght.pose.pose.position.x, lght.pose.pose.position.y] for lght in msg.lights]
+        self.lights_2d  = [[lght.pose.pose.position.x, lght.pose.pose.position.y] for lght in msg.lights]
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
@@ -131,17 +156,24 @@ class TLDetector(object):
         self.camera_image = msg
         self.counter_processing += 1
 
+        # Processing every second image
+        # Nigdy nie wchodzi do tego warunku
+        #if self.load_status == False:
+        #    self.upcoming_red_light_pub.publish(Int32(285))
+            #rospy.logerr(">> Publishing inside False :%s",285)
+
         # If the model is not entirely loaded, publishing temporary stop point
 
-        if self.load_status == False and self.pose and self.waypoints:    
+        if self.load_status == False and self.pose and self.lights_2d and self.waypoints:    
             temp_idx=self.get_closest_waypoint(self.pose.pose.position.x,self.pose.pose.position.y)
             #rospy.logerr(">> Temp idx :%s",temp_idx)
             self.upcoming_red_light_pub.publish(Int32(temp_idx))
             self.pub_light=Int32(temp_idx)
 
 
-        #Processing every x-th image
-        elif (self.counter_processing % 1 == 0):
+
+        #if (self.counter_processing % 2 == 0 and self.load_status == True):
+        elif (self.counter_processing % 3 == 0):
 
 
             light_wp, state = self.process_traffic_lights()
@@ -181,6 +213,10 @@ class TLDetector(object):
                 else:
                 	light_wp = -1
 
+
+
+                #light_wp = light_wp if state == TrafficLight.YELLOW or state == TrafficLight.RED or self.load_status == False else -1
+
                 self.last_wp = light_wp
                 self.upcoming_red_light_pub.publish(Int32(light_wp))
                 self.pub_light=Int32(light_wp)
@@ -200,9 +236,21 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        closest_point = self.waypoint_tree.query([x, y], 1)[1]
 
-        return closest_point
+        if self.waypoints_2d:
+
+            #closest_point=self.waypoint_tree.query([x,y],1)[1]
+
+            closest_point = self.closest(self.waypoints_2d,[x,y])
+
+            # Trick for finding the coordinates ahead, as described in the Partial Walkthrough
+            closest_coordinates = np.array(self.waypoints_2d[closest_point])
+            prev_xy = np.array(self.waypoints_2d[closest_point-1])
+            current_xy = np.array([x,y])
+            dotproduct = np.dot(closest_coordinates-prev_xy,current_xy-closest_coordinates)
+            if dotproduct > 0:
+                closest_point = (closest_point+1)%len(self.waypoints_2d)
+            return closest_point
 
     # Closest point implementation
     def closest(self, wpts, wp):
@@ -223,6 +271,9 @@ class TLDetector(object):
 
         """
 
+        # UNCOMMENT LATER!
+
+
         if self.load_status == False:
             return TrafficLight.RED
 
@@ -232,6 +283,7 @@ class TLDetector(object):
                 return False
 
             cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+
 
             # Saving captured images for labeling
             # For labeling purposes only
@@ -261,10 +313,14 @@ class TLDetector(object):
         # Lists of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions=self.config['stop_line_positions']
 
+
+
         #rospy.logerr(">> Stop line positions :%s",stop_line_positions)
 
 
-        if(self.pose   and self.waypoints):    
+
+
+        if(self.pose and  self.lights_2d and self.waypoints):    
             # Auxiliary flag for debugging
             self.intheloop=1
             car_wp_id=self.get_closest_waypoint(self.pose.pose.position.x,self.pose.pose.position.y)
@@ -292,6 +348,9 @@ class TLDetector(object):
         # Checking conditions for the distance to the traffic light less than k and processing every nth traffic light state
         if self.load_status == False:
             return light_waypoint_id, TrafficLight.RED
+
+
+
 
         if closest_light and self.light_waypoint_id_temp and self.closest_id_temp  and ( self.light_waypoint_id_temp  - self.closest_id_temp < TL_DIST):
             state=self.get_light_state(closest_light)
