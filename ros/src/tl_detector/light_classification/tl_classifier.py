@@ -9,6 +9,7 @@ from collections import defaultdict
 from io import StringIO
 from PIL import Image
 from glob import glob
+import yaml
 
 def load_image_into_numpy_array(image):
   (im_width, im_height) = image.size
@@ -20,7 +21,24 @@ class TLClassifier(object):
         # TODO load classifier
         # Done
         self.light = TrafficLight.UNKNOWN
-        ssd_inception_v2 = './light_classification/model/frozen_inference_graph.pb'
+        simpath = './light_classification/model/frozen_inference_graph.pb'
+        lotpath = './light_classification/model/frozen_41.pb'
+
+
+        
+        # Capturing is_site flag for model choice
+        conf = rospy.get_param("/traffic_light_config")
+        config = yaml.load(conf)
+        ssd_inception_v2 = lotpath if config['is_site'] else simpath
+        rospy.logwarn("Path to model: %s",ssd_inception_v2)
+        rospy.logwarn("Is Site: %s",config['is_site'])
+
+        # Configuration for detection
+        self.config = tf.ConfigProto(log_device_placement=False)
+        self.config.gpu_options.per_process_gpu_memory_fraction = 0.8  
+        self.config.operation_timeout_in_ms = 5000000 
+
+
         NUM_CLASSES = 4
         self.load_status_tl = False
 

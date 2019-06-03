@@ -116,7 +116,11 @@ Given poor performance of communication between the ROS and Simulator, the faste
 - ssd_inception_v2_coco_2018_01_28
 - ssd_mobilenet_v1_coco_2018_01_28 [Link](http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v1_coco_2018_01_28.tar.gz).
 
-The initial image set was exported within the get_light_state() method in the tl_detector.py script. However, given the time consuming nature of manual labeling and the fact that the captured screens were similar, I looked for suitable online datasets with traffic light. The following sources were used:
+The initial image set was exported within the get_light_state() method in the tl_detector.py script. There is a difference in image frame between the publicly available datasets and 2019 rosbag (hood and car wipers less visible in the frame). Therefore I prepared a 300 image dataset captured from the train rosbag. In addition publicly available datasets were used for training.
+
+The following sources were used:
+
+0. My manually labeled dataset of captured frames from the training rosbag.
 
 1. Annotated extract of the Bosh traffic light dataset - random 440MB subsample given 6GB+ size of the dataset converted to .record format (e-mail has to be provided for the data link to be generated)
 https://hci.iwr.uni-heidelberg.de/node/6132
@@ -134,6 +138,7 @@ Given that the performance of the model with only Bosh and Vatsal dataset on the
 https://www.dropbox.com/s/vaniv8eqna89r20/alex-lechner-udacity-traffic-light-dataset.zip?dl=0
 
 In total, the input data structure was the following:
+- My annotated dataset from the site - 200 MB
 - Bosh dataset 440MB 
 - Udacity simulator oversampled dataset 160MB
 - Udacity real car sample 50MB
@@ -142,6 +147,7 @@ The training process was performed:
 - for all data in the first 22000 steps
 - on simulator images ONLY in the next 2000 steps, since it was observed that the model loses ability to generalize in the simulator when the training data is mixed with the Bosh dataset.
 - for all data in the following 6000 steps
+- additional 2000 steps only on my labeled site dataset captured from rosbag
 
 ### Tensorflow API Installation and Training
 
@@ -227,7 +233,7 @@ python models/research/object_detection/legacy/train.py --logtostderr --train_di
 
 For SSD Inception a new pipeline config file was used, given known bug in the original one. [New config for inception](https://github.com/developmentseed/label-maker/blob/94f1863945c47e1b69fe0d6d575caa0b42aa8d63/examples/utils/ssd_inception_v2_coco.config)
 
-The loss plots can be observed by using the following command and pasting the generated address to the browser on the local machine.
+The illustrative loss plots can be observed by using the following command and pasting the generated address to the browser on the local machine.
 ```
 tensorboard --logdir=models/research/object_detection/models
 ```
@@ -236,7 +242,7 @@ First 2000 steps
 
 ![Mobilenet Loss][MobilenetLoss1]
 
-Another 2000 steps
+Next 2000 steps
 
 ![Mobilenet Loss][MobilenetLoss2]
 
