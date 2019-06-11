@@ -22,7 +22,7 @@ class TLClassifier(object):
         # Done
         self.light = TrafficLight.UNKNOWN
         simpath = './light_classification/model/frozen_inference_graph.pb'
-        lotpath = './light_classification/model/frozen_41.pb'
+        lotpath = './light_classification/model/frozen_45.pb'
 
 
         
